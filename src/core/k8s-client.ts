@@ -12,13 +12,20 @@ export class SealosK8sClient {
   private readonly networkingApi: k8s.NetworkingV1Api;
   private readonly customObjectsApi: k8s.CustomObjectsApi;
 
-  constructor(kubeconfigPath = SEALOS_KUBECONFIG_PATH) {
-    if (!fs.existsSync(kubeconfigPath)) {
-      throw new Error(`Sealos kubeconfig not found at ${kubeconfigPath}. Run the init skill first.`);
+  constructor(options?: { kubeconfigPath?: string; kubeconfigString?: string }) {
+    this.kc = new k8s.KubeConfig();
+
+    if (options?.kubeconfigString) {
+      // Load directly from an in-memory string (e.g. stored in DB)
+      this.kc.loadFromString(options.kubeconfigString);
+    } else {
+      const kubePath = options?.kubeconfigPath ?? SEALOS_KUBECONFIG_PATH;
+      if (!fs.existsSync(kubePath)) {
+        throw new Error(`Sealos kubeconfig not found at ${kubePath}. Run the init skill first.`);
+      }
+      this.kc.loadFromFile(kubePath);
     }
 
-    this.kc = new k8s.KubeConfig();
-    this.kc.loadFromFile(kubeconfigPath);
     this.appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
     this.coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
     this.networkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
@@ -54,12 +61,18 @@ export class SealosK8sClient {
 
 let singletonClient: SealosK8sClient | null = null;
 
+/** Get a global singleton client (reads from default file path). */
 export function getK8sClient(): SealosK8sClient {
   if (!singletonClient) {
     singletonClient = new SealosK8sClient();
   }
 
   return singletonClient;
+}
+
+/** Create a one-off client from an in-memory kubeconfig string. */
+export function createK8sClientFromString(kubeconfigString: string): SealosK8sClient {
+  return new SealosK8sClient({ kubeconfigString });
 }
 
 export function resetK8sClientForTests(): void {

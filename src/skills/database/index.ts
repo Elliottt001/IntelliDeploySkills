@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { getK8sClient } from '../../core/k8s-client';
+import { getK8sClient, SealosK8sClient } from '../../core/k8s-client';
 import { CreateDatabaseParams, DatabaseConnectionInfo, SkillResult } from '../../core/types';
 import { validateDatabaseParams } from '../../utils/validator';
 import { getMongoDBClusterSpec } from './mongodb';
@@ -24,7 +24,7 @@ export function buildConnectionString(type: CreateDatabaseParams['type'], host: 
   }
 }
 
-export async function createDatabase(params: CreateDatabaseParams): Promise<SkillResult> {
+export async function createDatabase(params: CreateDatabaseParams, externalClient?: SealosK8sClient): Promise<SkillResult> {
   try {
     validateDatabaseParams(params);
   } catch (error) {
@@ -34,7 +34,7 @@ export async function createDatabase(params: CreateDatabaseParams): Promise<Skil
     };
   }
 
-  const client = getK8sClient();
+  const client = externalClient ?? getK8sClient();
   const namespace = client.getNamespace();
   const password = crypto.randomBytes(16).toString('hex');
 

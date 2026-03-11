@@ -1,11 +1,11 @@
-import { getK8sClient } from '../../core/k8s-client';
+import { getK8sClient, SealosK8sClient } from '../../core/k8s-client';
 import { DeployContainerParams, SkillResult } from '../../core/types';
 import { validateDeployParams } from '../../utils/validator';
 import { createDeployment } from './deployment';
 import { createIngress } from './ingress';
 import { createService } from './service';
 
-export async function deployContainer(params: DeployContainerParams): Promise<SkillResult> {
+export async function deployContainer(params: DeployContainerParams, externalClient?: SealosK8sClient): Promise<SkillResult> {
   try {
     validateDeployParams(params);
   } catch (error) {
@@ -15,7 +15,7 @@ export async function deployContainer(params: DeployContainerParams): Promise<Sk
     };
   }
 
-  const client = getK8sClient();
+  const client = externalClient ?? getK8sClient();
   const namespace = client.getNamespace();
   const results: string[] = [];
 
